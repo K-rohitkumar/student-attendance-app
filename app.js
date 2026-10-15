@@ -9,7 +9,7 @@ function notify(msg){const t=$('toast');t.textContent=msg;t.classList.add('show'
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function activeBatch(){return state.batches.find(b=>b.id===$('attendanceBatch').value)||state.batches[0]}
 function record(date){if(!state.records[date])state.records[date]={};return state.records[date]}
-function statusOf(student,date){const r=record(date);return r[student.id]!==false}
+function statusOf(student,date){const r=record(date);return r[student.id]==true}
 function setStatus(student,date,present){record(date)[student.id]=present;save();renderAttendance();renderHistory()}
 function attendanceDates(){return Object.keys(state.records).sort()}
 function fmtDate(date){if(!date)return '';const [y,m,d]=date.split('-');return `${d}/${m}/${y}`}
