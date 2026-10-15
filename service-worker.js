@@ -1,10 +1,10 @@
 // const CACHE='classmate-attendance-v1';const FILES=['./','./index.html','./styles.css','./app.js','./manifest.json'];self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES))));self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k))))));self.addEventListener('fetch',e=>{if(e.request.method!=='GET')return;e.respondWith(caches.match(e.request).then(cached=>cached||fetch(e.request).then(resp=>{const copy=resp.clone();caches.open(CACHE).then(c=>c.put(e.request,copy));return resp}).catch(()=>caches.match('./index.html'))))});
 
-const CACHE = 'classmate-attendance-v2'; // Changed v1 -> v2
+const CACHE = 'classmate-attendance-v4'; // Changed version to v4
 const FILES = ['./', './index.html', './styles.css', './app.js', './manifest.json'];
 
 self.addEventListener('install', e => {
-  self.skipWaiting(); // Immediately replaces the old service worker
+  self.skipWaiting();
   e.waitUntil(
     caches.open(CACHE).then(c => c.addAll(FILES))
   );
@@ -13,12 +13,11 @@ self.addEventListener('install', e => {
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys().then(keys => 
-      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
-    ).then(() => self.clients.claim()) // Takes control of open app tabs immediately
+      Promise.all(keys.map(k => caches.delete(k))) // Clear all old cached web files
+    ).then(() => self.clients.claim())
   );
 });
 
-// Network-first strategy: fetch updated files online first, fallback to offline cache
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
   e.respondWith(
