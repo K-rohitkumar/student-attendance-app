@@ -9,24 +9,102 @@
 <header class="topbar"><div class="brandmark">✓</div><div><div class="brand">ClassMate</div><div class="subbrand">Student Attendance</div></div><span id="saveStatus" class="save-status">Saved on this device</span></header>
 <main>
 <section class="welcome"><div><p class="eyebrow">YOUR CLASSROOM, ORGANIZED</p><h1>Attendance made simple.</h1><p class="muted">Works offline. Your records stay on this device.</p></div><div class="date-chip" id="todayLabel"></div></section>
-<nav class="tabs" aria-label="Main navigation"><button class="tab active" data-page="attendance">Take attendance</button><button class="tab" data-page="students">Batches & students</button><button class="tab" data-page="reports">Reports & export</button></nav>
-<section id="page-attendance" class="page active">
+<nav class="tabs" aria-label="Main navigation"><button class="tab active" data-page="attendance">Take attendance</button><button class="tab" data-page="students">Batches & students</button><button class="tab" data-page="workshop">Workshops</button><button class="tab" data-page="reports">Reports & export</button></nav>
+
+ <!-- ATTENDANCE PAGE -->
+ <section id="page-attendance" class="page active">
  <div class="toolbar"><label class="field grow">Batch<select id="attendanceBatch"></select></label><label class="field datefield">Date<input type="date" id="attendanceDate"></label></div>
+ 
+ <!-- Sunday / Holiday / Extra Class Control Banner -->
+ <div id="dayStatusBanner" class="panel holiday-banner" style="display:none;">
+   <div id="dayStatusText"><strong>Sunday Detected</strong></div>
+   <div class="banner-actions" style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+     <button class="btn btn-light" id="overrideSundayBtn">Take Attendance Anyway</button>
+     <button class="btn btn-light" id="markHolidayBtn">Mark as Holiday</button>
+   </div>
+ </div>
+
+ <div id="holidayActiveNotice" class="panel warning" style="display:none;">
+   <h3>Holiday Active</h3>
+   <p id="holidayPurposeDisplay" class="muted"></p>
+   <button class="btn btn-light full" id="removeHolidayBtn" style="margin-top:10px;">Remove Holiday Status</button>
+ </div>
+
+ <div class="toolbar" style="align-items:center; background:white; padding:12px; border:1px solid var(--line); border-radius:12px; margin-bottom:14px;">
+   <label class="field grow" style="margin:0;">Session / Slot
+     <select id="sessionSlotSelect">
+       <option value="regular">Regular Session</option>
+       <option value="extra">Extra Class</option>
+     </select>
+   </label>
+ </div>
+ 
  <div class="stats"><div class="stat"><span>Total students</span><strong id="totalCount">0</strong></div><div class="stat presentstat"><span>Present</span><strong id="presentCount">0</strong></div><div class="stat absentstat"><span>Absent</span><strong id="absentCount">0</strong></div></div>
  <div class="list-head"><div><h2>Student list</h2><p class="muted small">Tap the status to switch Present / Absent.</p></div><button class="btn btn-light" id="markAllPresent">Mark all present</button></div>
  <div id="attendanceList" class="student-list"></div>
  <div class="bottom-actions"><button class="btn btn-primary" id="copyAbsent">Copy absent-only list</button><button class="btn btn-whatsapp" id="shareAbsent">Share absent report ↗</button></div>
  <p class="hint">WhatsApp opens only when you choose to share. Review the message before sending.</p>
 </section>
-<section id="page-students" class="page">
+
+ <!-- BATCHES & STUDENTS PAGE -->
+ <section id="page-students" class="page">
  <div class="section-title"><div><h2>Batches & students</h2><p class="muted">Create as many batches and students as you need.</p></div></div>
  <div class="panel"><h3>Add a batch</h3><div class="inline-form"><input id="newBatchName" placeholder="e.g. Networking - Morning" maxlength="80"><button class="btn btn-primary" id="addBatch">Add batch</button></div></div>
  <div class="panel"><h3>Add students to a batch</h3><label class="field">Choose batch<select id="studentBatch"></select></label><div class="form-grid"><label class="field">Roll number (optional)<input id="newRoll" placeholder="e.g. 01" maxlength="40"></label><label class="field">Student name<input id="newStudentName" placeholder="Full name" maxlength="100"></label></div><button class="btn btn-primary full" id="addStudent">Add student</button><div class="divider"></div><label class="field">Quick add multiple names <span class="muted">(one student per line; roll numbers optional)</span><textarea id="bulkStudents" rows="4" placeholder="01, Rahul Sharma&#10;02, Priya Verma&#10;Amit Singh"></textarea></label><button class="btn btn-light full" id="bulkAdd">Add all names above</button></div>
  <div class="section-title"><h2>Manage batches</h2></div><div id="batchManager" class="batch-manager"></div>
  <div class="panel warning"><h3>Backup your records</h3><p class="muted">Records are saved in this browser on this device. Use the backup button regularly, especially before changing phones or clearing browser data.</p><button class="btn btn-light full" id="backupData">Download full backup (JSON)</button><label class="btn btn-light full file-label">Restore backup<input type="file" id="restoreFile" accept=".json,application/json" hidden></label></div>
 </section>
-<section id="page-reports" class="page">
+
+ <!-- WORKSHOP PAGE -->
+<section id="page-workshop" class="page">
+    <div class="section-title"><div><h2>Workshop Attendance</h2><p class="muted">Run standalone workshops by pulling from existing batches or adding new participants.</p></div></div>
+    <div class="panel">
+      <h3>Create / Manage Workshop Session</h3>
+      <div class="field"><label>Workshop Name<input id="workshopName" placeholder="e.g. Python Bootcamp 2026" maxlength="100"></label></div>
+      <div class="field"><label>Date<input type="date" id="workshopDate"></label></div>
+      <div class="divider"></div>
+      <h4>Add Participants</h4>
+      <div class="form-grid">
+        <label class="field">Import from Batch
+          <select id="workshopSourceBatch"><option value="">Select batch...</option></select>
+        </label>
+        <button class="btn btn-light" id="importBatchToWorkshop" style="margin-top:20px;">Import Batch Students</button>
+      </div>
+      <div class="inline-form" style="margin-top:10px;">
+        <input id="workshopNewStudent" placeholder="Or add individual participant name..." maxlength="100">
+        <button class="btn btn-primary" id="addWorkshopStudent">Add participant</button>
+      </div>
+    </div>
+   
+    <div class="panel">
+      <h3>Workshop Attendance Sheet</h3>
+      <div class="stats" style="margin-bottom:14px;">
+        <div class="stat"><span>Total</span><strong id="workshopTotalCount">0</strong></div>
+        <div class="stat presentstat"><span>Present</span><strong id="workshopPresentCount">0</strong></div>
+        <div class="stat absentstat"><span>Absent</span><strong id="workshopAbsentCount">0</strong></div>
+      </div>
+      <div id="workshopAttendanceList" class="student-list"></div>
+      <div class="bottom-actions" style="margin-top:14px;">
+        <button class="btn btn-primary" id="copyWorkshopReport">Copy Workshop Report</button>
+        <button class="btn btn-whatsapp" id="shareWorkshopWhatsApp">Share via WhatsApp ↗</button>
+      </div>
+    </div>
+   </section>
+ 
+ <!-- REPORTS & EXPORT PAGE -->
+ <section id="page-reports" class="page">
  <div class="section-title"><div><h2>Reports & exports</h2><p class="muted">Download Excel workbooks or make an absent-only list.</p></div></div>
+ 
+ <div class="panel">
+  <h3>Weekly Attendance Report</h3>
+  <p class="muted">Generate and share a structured weekly summary for any batch.</p>
+  <label class="field">Batch<select id="weeklyReportBatch"></select></label>
+  <label class="field">Week Starting (Monday)<input type="date" id="weeklyReportDate"></label>
+  <button class="btn btn-primary full" id="generateWeeklyReport">Generate Weekly Summary</button>
+  <div id="weeklyReportOutput" class="history-summary" style="margin-top:12px; white-space:pre-wrap;"></div>
+  <button class="btn btn-whatsapp full" id="shareWeeklyReport" style="margin-top:10px; display:none;">Share Weekly Report via WhatsApp ↗</button>
+ </div> 
+  
  <div class="panel"><h3>Absent-only list</h3><p class="muted">Uses the batch and date selected on the attendance screen.</p><button class="btn btn-primary full" id="exportAbsentTxt">Download absent names (.txt)</button><button class="btn btn-light full" id="copyAbsentReport">Copy absent names to clipboard</button></div>
  <div class="panel"><h3>Export one batch to Excel</h3><p class="muted">Creates an .xlsx workbook with the selected batch's students and attendance history.</p><label class="field">Batch<select id="exportBatch"></select></label><button class="btn btn-primary full" id="exportOneBatch">Export selected batch (.xlsx)</button></div>
  <div class="panel"><h3>Export all batches at once</h3><p class="muted">One Excel workbook with a combined summary and a separate worksheet for each batch.</p><button class="btn btn-primary full" id="exportAllBatches">Export all batches (.xlsx)</button></div>
