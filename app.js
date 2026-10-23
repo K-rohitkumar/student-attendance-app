@@ -79,25 +79,34 @@
       const isSun = isSunday(date);
       const overrideKey = `${date}_override`;
       const isOverridden = state.records[overrideKey] === true;
-    
+
       if (holidayObj) {
-        $('dayStatusBanner').style.display='none';
-        $('holidayActiveNotice').style.display='block';
+        $('dayStatusBanner').style.display = 'none';
+        $('holidayActiveNotice').style.display = 'block';
         $('holidayPurposeDisplay').textContent = `Holiday Purpose: ${holidayObj.purpose || 'General Holiday'}`;
-        list.innerHTML='<div class="empty">Marked as Holiday. No attendance taken.</div>';
-        ['totalCount','presentCount','absentCount'].forEach(id=>$(id).textContent='0');
+        list.innerHTML = '<div class="empty">Marked as Holiday. No attendance taken.</div>';
+        ['totalCount', 'presentCount', 'absentCount'].forEach(id => $(id).textContent = '0');
         return;
       } else {
-        $('holidayActiveNotice').style.display='none';
+        $('holidayActiveNotice').style.display = 'none';
       }
-    
-      if (isSun && !isOverridden && slot === 'regular') {
-        $('dayStatusBanner').style.display='block';
-        list.innerHTML='<div class="empty">This date is a Sunday. Attendance is paused by default.</div>';
-        ['totalCount','presentCount','absentCount'].forEach(id=>$(id).textContent='0');
-        return;
+
+      if (isSun && slot === 'regular') {
+        $('dayStatusBanner').style.display = 'block';
+        if (isOverridden) {
+          $('overrideSundayBtn').style.display = 'none';
+          $('revertSundayBtn').style.display = 'inline-block';
+          $('dayStatusText').innerHTML = '<strong>Sunday Detected (Attendance Override Active)</strong>';
+        } else {
+          $('overrideSundayBtn').style.display = 'inline-block';
+          $('revertSundayBtn').style.display = 'none';
+          $('dayStatusText').innerHTML = '<strong>Sunday Detected</strong>';
+          list.innerHTML = '<div class="empty">This date is a Sunday. Attendance is paused by default.</div>';
+          ['totalCount', 'presentCount', 'absentCount'].forEach(id => $(id).textContent = '0');
+          return;
+        }
       } else {
-        $('dayStatusBanner').style.display='none';
+        $('dayStatusBanner').style.display = 'none';
       }
     
       if(!b){
@@ -146,12 +155,28 @@
       const wrap=$('historySummary');
       if(!wrap) return;
       if(!b){wrap.textContent='Create a batch to view history.';return}
-      const dates=attendanceDates().filter(d=>b.students.some(s=>Object.prototype.hasOwnProperty.call(state.records[d]||{},s.id)));
-      if(!dates.length){wrap.textContent='No attendance records yet for this batch.';return}
+      
+      // Gather regular attendance dates + any marked holiday dates
+      const allDatesSet = new Set([
+        ...attendanceDates(),
+        ...Object.keys(state.holidays)
+      ]);
+      const dates = Array.from(allDatesSet).sort().filter(d => {
+        // Keep if it has attendance records for this batch OR if it's a holiday
+        const hasAttendance = b.students.some(s => Object.prototype.hasOwnProperty.call(state.records[d] || {}, s.id));
+        const isHol = state.holidays[d];
+        return hasAttendance || isHol;
+      });
+
+      if(!dates.length){wrap.textContent='No attendance records or holidays yet for this batch.';return}
+      
       wrap.innerHTML=dates.slice().reverse().map(d=>{
+        const holidayObj = state.holidays[d];
+        if (holidayObj) {
+          return `<div><strong>${esc(fmtDate(d))}</strong> — <span style="color: var(--blue); font-weight: 700;">Holiday: ${esc(holidayObj.purpose)}</span> (No attendance taken)</div>`;
+        }
         const p=b.students.filter(s=>statusOf(s,d,'regular')).length;
-        const isHol = state.holidays[d] ? ` [Holiday: ${state.holidays[d].purpose}]` : '';
-        return `<div><strong>${esc(fmtDate(d))}</strong>${esc(isHol)} — Present: ${p}, Absent: ${b.students.length-p}</div>`;
+        return `<div><strong>${esc(fmtDate(d))}</strong> — Present: ${p}, Absent: ${b.students.length-p}</div>`;
       }).join('');
     }
     
@@ -182,7 +207,35 @@
     function zipStore(files){const enc=new TextEncoder(),parts=[],central=[];let offset=0;for(const f of files){const name=enc.encode(f.name),data=enc.encode(f.data),crc=crc32(data);const local=new Uint8Array([...u32(0x04034b50),...u16(20),...u16(0),...u16(0),...u16(0),...u16(0),...u32(crc),...u32(data.length),...u32(data.length),...u16(name.length),...u16(0),...name,...data]);parts.push(local);const cd=new Uint8Array([...u32(0x02014b50),...u16(20),...u16(20),...u16(0),...u16(0),...u16(0),...u16(0),...u32(crc),...u32(data.length),...u32(data.length),...u16(name.length),...u16(0),...u16(0),...u16(0),...u16(0),...u32(0),...u32(offset),...name]);central.push(cd);offset+=local.length}const centralLen=central.reduce((a,x)=>a+x.length,0),end=new Uint8Array([...u32(0x06054b50),...u16(0),...u16(0),...u16(files.length),...u16(files.length),...u32(centralLen),...u32(offset),...u16(0)]);return new Blob([...parts,...central,end],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})}
     function safeSheetName(name,used){let n=String(name||'Batch').replace(/[\\/*?:\[\]]/g,' ').trim().slice(0,31)||'Batch';let base=n,i=2;while(used.has(n.toLowerCase())){const suffix=' '+i++;n=base.slice(0,31-suffix.length)+suffix}used.add(n.toLowerCase());return n}
     function xlsxBlob(sheets){const used=new Set(),names=sheets.map(s=>safeSheetName(s.name,used));const files=[];files.push({name:'[Content_Types].xml',data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>${sheets.map((_,i)=>`<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('')}</Types>`});files.push({name:'_rels/.rels',data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>'});files.push({name:'xl/workbook.xml',data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${names.map((n,i)=>`<sheet name="${xmlEscape(n)}" sheetId="${i+1}" r:id="rId${i+1}"/>`).join('')}</sheets></workbook>`});files.push({name:'xl/_rels/workbook.xml.rels',data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${sheets.map((_,i)=>`<Relationship Id="rId${i+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i+1}.xml"/>`).join('')}</Relationships>`});sheets.forEach((s,i)=>files.push({name:`xl/worksheets/sheet${i+1}.xml`,data:worksheetXml(s.rows)}));return zipStore(files)}
-    function rowsForBatch(b){const dates=attendanceDates().filter(d=>b.students.some(s=>Object.prototype.hasOwnProperty.call(state.records[d]||{},s.id)));const rows=[['Batch',b.name],['Generated on',fmtDate(today())],[],['Roll No.','Student Name',...dates.map(fmtDate),'Present Days','Absent Days','Attendance %']];b.students.forEach(s=>{let p=0,a=0;const cells=dates.map(d=>{const yes=statusOf(s,d,'regular');if(yes)p++;else a++;return yes?'Present':'Absent'});const pct=dates.length?Math.round(p/dates.length*10000)/100:0;rows.push([s.roll||'',s.name,...cells,p,a,`${pct}%`])});return rows}
+    function rowsForBatch(b){
+      // Include both attendance dates and holiday dates so they appear in columns
+      const allDatesSet = new Set([
+        ...attendanceDates(),
+        ...Object.keys(state.holidays)
+      ]);
+      const dates = Array.from(allDatesSet).sort();
+      
+      const rows=[['Batch',b.name],['Generated on',fmtDate(today())],[],['Roll No.','Student Name',...dates.map(fmtDate),'Present Days','Absent Days','Attendance %']];
+      
+      b.students.forEach(s=>{
+        let p=0,a=0;
+        const cells=dates.map(d=>{
+          if(state.holidays[d]){
+            return `Holiday: ${state.holidays[d].purpose}`;
+          }
+          const yes=statusOf(s,d,'regular');
+          if(yes)p++;else a++;
+          return yes?'Present':'Absent';
+        });
+        
+        // Exclude holidays from total active working days calculation for percentages
+        const workingDays = dates.filter(d => !state.holidays[d]).length;
+        const pct=workingDays>0?Math.round(p/workingDays*10000)/100:0;
+        
+        rows.push([s.roll||'',s.name,...cells,p,a,`${pct}%`]);
+      });
+      return rows;
+    }
     function download(blob,filename){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500)}
     
     // Workshop Management State & Handlers
@@ -216,7 +269,7 @@
     
       list.innerHTML = students.map(s=>{
         const p = !!w.records[s.id];
-        return `<div class="student-row"><div class="avatar">${esc((s.name.trim()[0]||'?').toUpperCase())}</div><div class="student-info"><div class="student-name">${esc(s.name)}</div><div class="student-roll">${s.roll?`Roll No. ${esc(s.roll)}`:'Participant'}</div></div><button class="toggle ${p?'present':'absent'}" data-wtoggle="${esc(s.id)}">${p?'✓ Present':'✕ Absent'}</button></div>`;
+        return `<div class="student-row"><div class="avatar">${esc((s.name.trim()[0]||'?').toUpperCase())}</div><div class="student-info"><div class="student-name">${esc(s.name)}</div><div class="student-roll">${s.roll?`Roll: ${esc(s.roll)} · `:''}${s.address?esc(s.address):'No address'}</div></div><button class="toggle ${p?'present':'absent'}" data-wtoggle="${esc(s.id)}">${p?'✓ Present':'✕ Absent'}</button></div>`;
       }).join('');
     
       list.querySelectorAll('[data-wtoggle]').forEach(btn=>{
@@ -279,7 +332,17 @@
       renderAttendance();
       notify('Sunday attendance enabled for this date');
     });
+
+    $('revertSundayBtn').addEventListener('click', ()=>{
+      const date=$('attendanceDate').value||today();
+      delete state.records[`${date}_override`];
+      save();
+      renderAttendance();
+      notify('Sunday attendance override reverted');
+    });
     
+
+
     $('markHolidayBtn').addEventListener('click', ()=>{
       const date=$('attendanceDate').value||today();
       const purpose = prompt('Enter purpose for holiday (e.g. National Festival, Exam Break):', 'Holiday');
@@ -288,6 +351,48 @@
         save();
         renderAttendance();
         notify('Marked as holiday');
+      }
+    });
+
+    $('globalMarkHolidayBtn').addEventListener('click', ()=>{
+      const date=$('attendanceDate').value||today();
+      const existing = state.holidays[date];
+      
+      if(existing){
+        // If it's already a holiday, give an option to edit or remove it
+        const action = prompt(`This date is already a holiday: "${existing.purpose}".\nType a new purpose to update it, or type 'remove' to clear the holiday status:`, existing.purpose);
+        if(action !== null){
+          if(action.trim().toLowerCase() === 'remove'){
+            delete state.holidays[date];
+            notify('Holiday status removed');
+          } else {
+            state.holidays[date] = { purpose: action.trim() || 'Holiday' };
+            notify('Holiday purpose updated');
+          }
+          save();
+          renderAttendance();
+        }
+      } else {
+        // If not a holiday yet, prompt for purpose and mark it
+        const purpose = prompt('Enter purpose for holiday (e.g. Diwali, Independence Day, Exam Break):', 'Holiday');
+        if(purpose !== null){
+          state.holidays[date] = { purpose: purpose.trim() || 'Holiday' };
+          save();
+          renderAttendance();
+          notify('Marked as holiday');
+        }
+      }
+    });
+
+    $('editHolidayBtn').addEventListener('click', ()=>{
+      const date=$('attendanceDate').value||today();
+      const current = state.holidays[date]?.purpose || '';
+      const purpose = prompt('Edit purpose for holiday:', current);
+      if(purpose !== null){
+        state.holidays[date] = { purpose: purpose.trim() || 'Holiday' };
+        save();
+        renderAttendance();
+        notify('Holiday purpose updated');
       }
     });
     
@@ -381,7 +486,7 @@
       let added = 0;
       b.students.forEach(st => {
         if(!w.students.some(ws => ws.name.toLowerCase() === st.name.toLowerCase())){
-          w.students.push({ id: uid(), name: st.name, roll: st.roll || '' });
+          w.students.push({ id: uid(), name: st.name, roll: st.roll || '', address: st.address || '' });
           added++;
         }
       });
@@ -392,10 +497,14 @@
     
     $('addWorkshopStudent').addEventListener('click', ()=>{
       const name = $('workshopNewStudent').value.trim();
+      const roll = $('workshopNewRoll').value.trim();
+      const address = $('workshopNewAddress').value.trim();
       if(!name){ notify('Enter participant name'); return; }
       const w = currentWorkshop();
-      w.students.push({ id: uid(), name, roll: '' });
+      w.students.push({ id: uid(), name, roll, address });
       $('workshopNewStudent').value = '';
+      $('workshopNewRoll').value = '';
+      $('workshopNewAddress').value = '';
       save();
       renderWorkshop();
       notify('Participant added');
@@ -406,7 +515,7 @@
       let txt = `WORKSHOP REPORT: ${w.name}\nDate: ${fmtDate(w.date)}\nTotal: ${w.students.length}\n\n`;
       w.students.forEach((s, i)=>{
         const p = !!w.records[s.id];
-        txt += `${i+1}. ${s.name} - ${p ? 'Present' : 'Absent'}\n`;
+        txt += `${i+1}. ${s.name}${s.roll?` (Roll: ${s.roll})`:''}${s.address?` - ${s.address}`:''} - ${p ? 'Present' : 'Absent'}\n`;
       });
       copyText(txt);
     });
@@ -416,7 +525,7 @@
       let txt = `WORKSHOP REPORT: ${w.name}\nDate: ${fmtDate(w.date)}\nTotal: ${w.students.length}\n\n`;
       w.students.forEach((s, i)=>{
         const p = !!w.records[s.id];
-        txt += `${i+1}. ${s.name} - ${p ? 'Present' : 'Absent'}\n`;
+        txt += `${i+1}. ${s.name}${s.roll?` (Roll: ${s.roll})`:''}${s.address?` - ${s.address}`:''} - ${p ? 'Present' : 'Absent'}\n`;
       });
       location.href = 'https://wa.me/?text=' + encodeURIComponent(txt);
     });
@@ -451,13 +560,28 @@
     
     $('exportAllBatches').addEventListener('click',()=>{
       if(!state.batches.length){notify('Create a batch first');return}
-      const dates=attendanceDates();
+      const allDatesSet = new Set([
+        ...attendanceDates(),
+        ...Object.keys(state.holidays)
+      ]);
+      const dates=Array.from(allDatesSet).sort();
       const combined=[['Batch','Roll No.','Student Name',...dates.map(fmtDate),'Present Days','Absent Days','Attendance %']];
+      
       state.batches.forEach(b=>b.students.forEach(s=>{
         let p=0,a=0;
-        const cells=dates.map(d=>{const yes=statusOf(s,d,'regular');if(yes)p++;else a++;return yes?'Present':'Absent'});
-        combined.push([b.name,s.roll||'',s.name,...cells,p,a,`${dates.length?Math.round(p/dates.length*10000)/100:0}%`])
+        const cells=dates.map(d=>{
+          if(state.holidays[d]){
+            return `Holiday: ${state.holidays[d].purpose}`;
+          }
+          const yes=statusOf(s,d,'regular');
+          if(yes)p++;else a++;
+          return yes?'Present':'Absent';
+        });
+        const workingDays = dates.filter(d => !state.holidays[d]).length;
+        const pct=workingDays>0?Math.round(p/workingDays*10000)/100:0;
+        combined.push([b.name,s.roll||'',s.name,...cells,p,a,`${pct}%`]);
       }));
+      
       const sheets=[{name:'All Students',rows:combined},...state.batches.map(b=>({name:b.name,rows:rowsForBatch(b)}))];
       download(xlsxBlob(sheets),`All_Batches_Attendance_${today()}.xlsx`);
       notify('All-batches Excel workbook downloaded');

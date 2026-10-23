@@ -13,22 +13,33 @@
 
  <!-- ATTENDANCE PAGE -->
  <section id="page-attendance" class="page active">
- <div class="toolbar"><label class="field grow">Batch<select id="attendanceBatch"></select></label><label class="field datefield">Date<input type="date" id="attendanceDate"></label></div>
- 
- <!-- Sunday / Holiday / Extra Class Control Banner -->
- <div id="dayStatusBanner" class="panel holiday-banner" style="display:none;">
-   <div id="dayStatusText"><strong>Sunday Detected</strong></div>
-   <div class="banner-actions" style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
-     <button class="btn btn-light" id="overrideSundayBtn">Take Attendance Anyway</button>
-     <button class="btn btn-light" id="markHolidayBtn">Mark as Holiday</button>
-   </div>
- </div>
+  <div class="toolbar">
+    <label class="field grow">Batch<select id="attendanceBatch"></select></label>
+    <label class="field datefield">Date<input type="date" id="attendanceDate"></label>
+    <div style="display: flex; align-items: flex-end; margin-bottom: 13px;">
+      <button class="btn btn-light" id="globalMarkHolidayBtn" title="Mark this date as a holiday" style="white-space: nowrap; height: 42px;">📅 Mark Holiday</button>
+    </div>
+  </div>
 
- <div id="holidayActiveNotice" class="panel warning" style="display:none;">
-   <h3>Holiday Active</h3>
-   <p id="holidayPurposeDisplay" class="muted"></p>
-   <button class="btn btn-light full" id="removeHolidayBtn" style="margin-top:10px;">Remove Holiday Status</button>
- </div>
+  
+  <!-- Sunday / Holiday / Extra Class Control Banner -->
+  <div id="dayStatusBanner" class="panel holiday-banner" style="display:none;">
+    <div id="dayStatusText"><strong>Sunday Detected</strong></div>
+    <div class="banner-actions" style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+      <button class="btn btn-light" id="overrideSundayBtn">Take Attendance Anyway</button>
+      <button class="btn btn-light" id="revertSundayBtn" style="display:none;">Revert Sunday Override</button>
+      <button class="btn btn-light" id="markHolidayBtn">Mark as Holiday</button>
+    </div>
+  </div>
+
+  <div id="holidayActiveNotice" class="panel warning" style="display:none;">
+    <h3>Holiday Active</h3>
+    <p id="holidayPurposeDisplay" class="muted"></p>
+    <div class="banner-actions" style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+      <button class="btn btn-light" id="removeHolidayBtn">Remove Holiday Status</button>
+      <button class="btn btn-light" id="editHolidayBtn">Edit Purpose</button>
+    </div>
+  </div>
 
  <div class="toolbar" style="align-items:center; background:white; padding:12px; border:1px solid var(--line); border-radius:12px; margin-bottom:14px;">
    <label class="field grow" style="margin:0;">Session / Slot
@@ -70,10 +81,15 @@
         </label>
         <button class="btn btn-light" id="importBatchToWorkshop" style="margin-top:20px;">Import Batch Students</button>
       </div>
-      <div class="inline-form" style="margin-top:10px;">
-        <input id="workshopNewStudent" placeholder="Or add individual participant name..." maxlength="100">
-        <button class="btn btn-primary" id="addWorkshopStudent">Add participant</button>
+      <div class="form-grid" style="margin-top:10px;">
+        <label class="field">Participant Name<input id="workshopNewStudent" placeholder="Full name" maxlength="100"></label>
+        <label class="field">Roll / ID (optional)<input id="workshopNewRoll" placeholder="e.g. W-01" maxlength="40"></label>
       </div>
+      <!-- <div class="inline-form" style="margin-top:10px;"> -->
+        <!-- <input id="workshopNewStudent" placeholder="Or add individual participant name..." maxlength="100"> -->
+        <label class="field" style="margin-top:10px;">Address (optional)<input id="workshopNewAddress" placeholder="Street / City / Locality" maxlength="200"></label>
+        <button class="btn btn-primary" id="addWorkshopStudent">Add participant</button>
+      <!-- </div> -->
     </div>
    
     <div class="panel">
